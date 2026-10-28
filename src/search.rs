@@ -135,6 +135,16 @@ pub async fn find(req: Request<Body>) -> Result<Response<Body>, String> {
 				if clean_urls == "on".to_owned() {
 					posts.iter_mut().for_each(|post| post.media.url = clean_url(post.media.url.clone()));
 				}
+				let flair_filters: Vec<String> = query.to_lowercase()
+					.split_whitespace()
+					.filter_map(|t| t.strip_prefix("flair:").map(str::to_string))
+					.collect();
+				if !flair_filters.is_empty() {
+					posts.retain(|post| {
+						let text = post.flair.text.to_lowercase();
+						flair_filters.iter().any(|f| text.contains(f))
+					});
+				}
 				let (_, all_posts_filtered) = filter_posts(&mut posts, &filters);
 				let no_posts = posts.is_empty();
 				let all_posts_hidden_nsfw = !no_posts && (posts.iter().all(|p| p.flags.nsfw) && setting(&req, "show_nsfw") != "on");
